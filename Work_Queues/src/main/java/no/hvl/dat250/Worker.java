@@ -15,9 +15,10 @@ public class Worker {
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
-        channel.queueDeclare(TASK_QUEUE_NAME, false, false, false, null);
+        channel.queueDeclare(TASK_QUEUE_NAME, true, false, false, null);
         System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
 
+        channel.basicQos(1);
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), "UTF-8");
 
@@ -26,9 +27,10 @@ public class Worker {
                 doWork(message);
             } finally {
                 System.out.println(" [x] Done");
+                channel.basicAck(delivery.getEnvelope().getDeliveryTag(), false);
             }
         };
-        boolean autoAck = true; // acknowledgment is covered below
+        boolean autoAck = false; // acknowledgment is covered below
         channel.basicConsume(TASK_QUEUE_NAME, autoAck, deliverCallback, consumerTag -> { });
     }
     private static void doWork(String task) {
